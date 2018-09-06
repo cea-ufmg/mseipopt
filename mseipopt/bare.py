@@ -57,6 +57,14 @@ Intermediate_CB = CFUNCTYPE(c_int, c_int,
 """Type of the callback to give intermediate execution control to the user."""
 
 
+class IpoptProblemInfo(ctypes.Structure):
+    """Structure collecting all information about the problem."""
+
+
+IpoptProblem = POINTER(IpoptProblemInfo)
+"""Pointer to a IPOPT problem."""
+
+
 def default_ipopt_library_name():
     if os.name == 'nt':
         return "ipopt"
@@ -74,7 +82,7 @@ def load_library(name=None):
 def _setup_library():
     assert _ipopt_lib is not None, "cannot setup before loading"
 
-    _ipopt_lib.CreateIpoptProblem.restype = c_void_p
+    _ipopt_lib.CreateIpoptProblem.restype = IpoptProblem
     _ipopt_lib.CreateIpoptProblem.argtypes = [
         c_int, c_double_p, c_double_p,
         c_int, c_double_p, c_double_p,
@@ -83,7 +91,7 @@ def _setup_library():
     ]
 
     _ipopt_lib.FreeIpoptProblem.restype = None
-    _ipopt_lib.FreeIpoptProblem.argtypes = [c_void_p]
+    _ipopt_lib.FreeIpoptProblem.argtypes = [IpoptProblem]
 
 
 def default_setup():
@@ -94,11 +102,17 @@ def default_setup():
 def CreateIpoptProblem(n, x_L, x_U, m, g_L, g_U, nele_jac, nele_hess,
                        index_style, eval_f, eval_g, eval_grad_f, eval_jac_g,
                        eval_h):
+    """Create a new IPOPT Problem object."""
     default_setup()
     return _ipopt_lib.CreateIpoptProblem(
         n, x_L, x_U, m, g_L, g_U, nele_jac, nele_hess, index_style,
         eval_f, eval_g, eval_grad_f,  eval_jac_g, eval_h
     )
+
+
+def FreeIpoptProblem(ipopt_problem):
+    assert _ipopt_lib is not None, "library must be loaded to create problem"
+    _ipopt_lib.FreeIpoptProblem(ipopt_problem)
 
 
 def AddIpoptStrOption(problem, keyword, val):
