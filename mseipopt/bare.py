@@ -3,7 +3,7 @@
 
 import ctypes
 import os
-from ctypes import c_int, c_double, c_void_p, CFUNCTYPE, POINTER
+from ctypes import c_int, c_double, c_char_p, c_void_p, CFUNCTYPE, POINTER
 
 
 _ipopt_lib = None
@@ -93,6 +93,31 @@ def _setup_library():
     _ipopt_lib.FreeIpoptProblem.restype = None
     _ipopt_lib.FreeIpoptProblem.argtypes = [IpoptProblem]
 
+    _ipopt_lib.AddIpoptStrOption.restype = c_int
+    _ipopt_lib.AddIpoptStrOption.argtypes = [IpoptProblem, c_char_p, c_char_p]
+
+    _ipopt_lib.AddIpoptIntOption.restype = c_int
+    _ipopt_lib.AddIpoptIntOption.argtypes = [IpoptProblem, c_char_p, c_int]
+
+    _ipopt_lib.AddIpoptNumOption.restype = c_int
+    _ipopt_lib.AddIpoptNumOption.argtypes = [IpoptProblem, c_char_p, c_double]
+
+    _ipopt_lib.OpenIpoptOutputFile.restypes = c_int
+    _ipopt_lib.OpenIpoptOutputFile.argtypes = [IpoptProblem, c_char_p, c_int]
+
+    _ipopt_lib.SetIpoptProblemScaling.restypes = c_int
+    _ipopt_lib.SetIpoptProblemScaling.argtypes = [IpoptProblem, c_double, 
+                                                  c_double_p, c_double_p]
+    
+    _ipopt_lib.SetIntermediateCallback.restypes = c_int
+    _ipopt_lib.SetIntermediateCallback.argtypes = [IpoptProblem,Intermediate_CB]
+    
+    _ipopt_lib.IpoptSolve.restypes = c_int
+    _ipopt_lib.IpoptSolve.argtypes = [
+        IpoptProblem, c_double_p, c_double_p, c_double_p, c_double_p, 
+        c_double_p, c_double_p, c_void_p
+    ]
+
 
 def default_setup():
     if _ipopt_lib is None:
@@ -106,7 +131,7 @@ def CreateIpoptProblem(n, x_L, x_U, m, g_L, g_U, nele_jac, nele_hess,
     default_setup()
     return _ipopt_lib.CreateIpoptProblem(
         n, x_L, x_U, m, g_L, g_U, nele_jac, nele_hess, index_style,
-        eval_f, eval_g, eval_grad_f,  eval_jac_g, eval_h
+        eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h
     )
 
 
@@ -136,3 +161,28 @@ def AddIpoptIntOption(problem, keyword, val):
     if isinstance(keyword, str):
         keyword = keyword.encode('ascii')
     return _ipopt_lib.AddIpoptIntOption(problem, keyword, val)
+
+
+def OpenIpoptOutputFile(ipopt_problem, file_name, print_level):
+    assert _ipopt_lib is not None, "library must be loaded to create problem"
+    if isinstance(file_name, str):
+        file_name = file_name.encode('ascii')
+    return _ipopt_lib.OpenIpoptOutputFile(ipopt_problem, file_name, print_level)
+
+
+def SetIpoptProblemScaling(ipopt_problem, obj_scaling, x_scaling, g_scaling):
+    assert _ipopt_lib is not None, "library must be loaded to create problem"
+    return _ipopt_lib.SetIpoptProblemScaling(ipopt_problem, obj_scaling, 
+                                             x_scaling, g_scaling)
+
+
+def SetIntermediateCallback(ipopt_problem, intermediate_cb):
+    assert _ipopt_lib is not None, "library must be loaded to create problem"
+    return _ipopt_lib.SetIntermediateCallback(ipopt_problem, intermediate_cb)
+
+
+def IpoptSolve(ipopt_problem, x, g, obj_val, mult_g, 
+               mult_x_L, mult_x_U, user_data):
+    assert _ipopt_lib is not None, "library must be loaded to create problem"
+    return _ipopt_lib.IpoptSolve(ipopt_problem, x, g, obj_val, mult_g, 
+                                 mult_x_L, mult_x_U, user_data)
