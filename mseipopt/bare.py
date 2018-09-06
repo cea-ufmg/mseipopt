@@ -1,4 +1,18 @@
-"""Bare wrapper around the IPOPT c interface using ctypes."""
+"""Bare wrapper around the IPOPT c interface using ctypes.
+
+The type names are the same as in `IpStdCInterface.h`, the argument names are
+the same and even the order of the definitions in the module is the same. Very
+little checking or validation is done. This module provides direct access to
+the ipopt c interface functions using `ctypes`.
+
+If the library shared object or DLL has a nonstandard name, the `load_library`
+function must be called before creating a problem. When `CreateIpoptProblem`
+is called, an attempt is made to find load the library.
+
+After a problem is no longer needed, `FreeIpoptProblem` should be called, or 
+memory will leak. If `FreeIpoptProblem` is called more than once on the same
+problem, the program will likely crash.
+"""
 
 
 import ctypes

@@ -13,7 +13,7 @@ def eval_f(n, x, new_x, obj_value, user_data):
     return 1
 
 
-@bare.Eval_F_CB
+@bare.Eval_Grad_F_CB
 def eval_grad_f(n, x, new_x, grad_f, user_data):
     grad_f[0] = 2*(x[0] - 1)
     return 1
