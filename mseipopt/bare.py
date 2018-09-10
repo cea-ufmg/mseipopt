@@ -39,7 +39,7 @@ Eval_F_CB = CFUNCTYPE(c_int, c_int, c_double_p, c_int,
 
 
 Eval_Grad_F_CB = CFUNCTYPE(c_int, c_int, c_double_p, c_int, 
-                      c_double_p, c_void_p)
+                           c_double_p, c_void_p)
 """Type of the callback for evaluating the gradient of the objective."""
 
 
