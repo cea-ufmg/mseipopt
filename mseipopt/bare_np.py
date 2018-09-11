@@ -17,9 +17,15 @@ from numpy.ctypeslib import as_array
 from . import bare
 
 
+def default_handler(e):
+    """Exception handler for IPOPT ctypes callbacks, prints the traceback."""
+    import traceback
+    traceback.print_exc()
+
+
 class Problem:
     def __init__(self, x_bounds, g_bounds, nele_jac, nele_hess, index_style,
-                 f, g, grad_f, jac_g, h=None):
+                 f, g, grad_f, jac_g, h=None, *, handler=default_handler):
         # Unpack and validate decision variable bounds
         x_L, x_U = x_bounds
         x_L = np.require(x_L, np.double, ['A', 'C'])
@@ -37,11 +43,11 @@ class Problem:
             raise ValueError("Inconsistent sizes of 'g' lower and upper bounds")
         
         # Wrap the callbacks
-        eval_f = wrap_f(f)
-        eval_g = wrap_g(g)
-        eval_grad_f = wrap_grad_f(grad_f)
-        eval_jac_g = wrap_jac_g(jac_g)
-        eval_h = wrap_h(h) if h is not None else bare.Eval_H_CB()
+        eval_f = wrap_f(f, handler)
+        eval_g = wrap_g(g, handler)
+        eval_grad_f = wrap_grad_f(grad_f, handler)
+        eval_jac_g = wrap_jac_g(jac_g, handler)
+        eval_h = wrap_h(h, handler) if h is not None else bare.Eval_H_CB()
         problem = bare.CreateIpoptProblem(
             n, data_ptr(x_L), data_ptr(x_U), m, data_ptr(g_L), data_ptr(g_U),
             nele_jac, nele_hess, index_style, 
@@ -49,7 +55,7 @@ class Problem:
         )
         if not problem:
             raise RuntimeError('Error creating IPOPT problem')
-
+        
         # Save object data
         self._problem = problem
         """Pointer to the underlying `IpoptProblemInfo` structure."""
@@ -113,8 +119,10 @@ class Problem:
         intermediate_cb = wrap_intermediate_cb(cb)
         if not bare.SetIntermediateCallback(self._problem, intermediate_cb):
             raise RuntimeError("error setting problem intermediate callback")
+        self._callbacks['intermediate_cb'] = intermediate_cb
     
-    def solve(self, x, g, obj_val, mult_g, mult_x_L, mult_x_U):
+    def solve(self, x, g=None, obj_val=None, 
+              mult_g=None, mult_x_L=None, mult_x_U=None):
         exc = (validate_io_array(x, (self.n,), 'x', none_ok=False)
                or validate_io_array(g, (self.m,), 'g')
                or validate_io_array(obj_val, (), 'obj_val')
@@ -134,12 +142,6 @@ class Problem:
     
     def __exit__(self, exc_type, exc_value, traceback):
         self.free()
-
-
-def default_handler(e):
-    """Exception handler for IPOPT ctypes callbacks, prints the traceback."""
-    import traceback
-    traceback.print_exc()
 
 
 def wrap_f(f, handler=default_handler):

@@ -9,11 +9,6 @@ import numpy as np
 from . import bare_np
 
 
-class UnmanagedProblem(bare_np.Problem):
-    def solve(self, x, g_mult=None, x_L_mult=None, x_U_mult=None):
-        pass
-
-
 class Problem(bare_np.Problem):
     def __init__(self, x_bounds, g_bounds, f, g, grad,
                  jac, nele_jac, hess=None, nele_hess=None):
@@ -21,29 +16,54 @@ class Problem(bare_np.Problem):
             raise TypeError("'nele_hess' must be given if 'hess' is supplied")
         if hess is None:
             nele_hess = 0
+        
+        # Create callbacks
         f_cb = f_callback(f)
         grad_cb = grad_callback(grad)
         g_cb = g_callback(g)
         jac_cb = jac_callback(jac)
         hess_cb = hess_callback(hess)
-        self._create_args = (x_bounds, g_bounds, nele_jac, nele_hess, 0,
-                             f_cb, g_cb, grad_cb, jac_cb, hess_cb)
-        """Arguments for problem creation."""
         
-        self._problem = None
-        """Underlying problem object."""
+        handler = self._callback_exception_handler
+        super().__init__(x_bounds, g_bounds, nele_jac, nele_hess, 0,
+                         f_cb, g_cb, grad_cb, jac_cb, hess_cb, handler=handler)
+        self.set_intermediate_callback(self._intermediate_callback)
     
-    def __enter__(self):
-        if self._problem:
-            raise RuntimeError("entering an opened context")
-        self._problem = bare_np.Problem(*self._create_args)
-        return self._problem.__enter__()
+    def _intermediate_callback(self, *args):
+        return 0 if getattr(self, '_abort', False) else 1
+    
+    def _callback_exception_handler(self, e):
+        if isinstance(e, InvalidPoint):
+            return
+        if isinstance(e, KeyboardInterrupt):
+            self._abort = True
+            return
+        bare_np.default_handler(e)
+    
+    def solve(self, x, mult_g=None, mult_x_L=None, mult_x_U=None, copy=True):
+        if any(m is not None for m in (mult_g, mult_x_L, mult_x_U)):
+            self.add_str_option('warm_start_init_point', 'yes')
+        else:
+            self.add_str_option('warm_start_init_point', 'no')
         
-    def __exit__(self, exc_type, exc_value, traceback):
-        if not self._problem:
-            raise RuntimeError("attempt to exit from invalid context")
-        self._problem.__exit__(exc_type, exc_value, traceback)
-        self._problem = None
+        mult_g = np.zeros(self.m) if mult_g is None else mult_g
+        mult_x_L = np.zeros(self.n) if mult_x_L is None else mult_x_L
+        mult_x_U = np.zeros(self.n) if mult_x_U is None else mult_x_U
+        
+        g = np.empty(self.m)
+        obj_val = np.empty(())
+        if copy:
+            x = np.broadcast_to(x, (self.n,))
+            x = np.array(x, np.double, copy=True, order='C')
+        
+        status = super().solve(x, g, obj_val, mult_g, mult_x_L, mult_x_U)
+        info = dict(g=g, obj_val=obj_val, mult_g=mult_g, 
+                    mult_x_L=mult_x_L, mult_x_U=mult_x_U, status=status)
+        return x, info
+
+
+class InvalidPoint(RuntimeError):
+    """Exception raised in callback to signal an invalid decision by IPOPT."""
 
 
 def f_callback(f):
@@ -85,11 +105,11 @@ def jac_callback(jac):
             return 1
         
         # Fill out jacobian indices
+        if iRow is None or jCol is None or iRow.size == 0 or jCol.size == 0:
+            return 1
         i, j = jac_ind() if callable(jac_ind) else jac_ind
-        if iRow is not None and iRow.size:
-            iRow[...] = i
-        if jCol is not None and jCol.size:
-            jCol[...] = j
+        iRow[...] = i
+        jCol[...] = j
         return 1
     
     return wrapper
@@ -112,11 +132,11 @@ def hess_callback(hess):
             return 1
         
         # Fill out jacobian indices
+        if iRow is None or jCol is None or iRow.size == 0 or jCol.size == 0:
+            return 1
         i, j = hess_ind() if callable(hess_ind) else hess_ind
-        if iRow is not None and iRow.size:
-            iRow[...] = i
-        if jCol is not None and jCol.size:
-            jCol[...] = j
+        iRow[...] = i
+        jCol[...] = j
         return 1
     
     return wrapper

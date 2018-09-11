@@ -1,6 +1,6 @@
 import numpy as np
 
-from mseipopt import ez
+from mseipopt import bare, bare_np, ez
 
 
 def f(x):
@@ -16,7 +16,7 @@ def g(x):
 
 
 def jac_ind():
-    return []
+    return [[], []]
 
 
 def jac_val(x):
@@ -32,7 +32,6 @@ def hess_val(x, obj_factor, mult):
 
 
 if __name__ == '__main__':
-    import imp; [imp.reload(m) for m in [ez]]
     x_L = [-100]
     x_U = [100]
     x_b = (x_L, x_U)
@@ -44,6 +43,5 @@ if __name__ == '__main__':
         problem.add_int_option('max_iter', 2000)
         problem.add_num_option('tol', 1e-6)
         
-        x = np.array([10.0])
-        obj_val = np.empty(())
-        status = problem.solve(x, None, obj_val, None, None, None)
+        x0 = [10.0]
+        xopt, info = problem.solve(x0)
