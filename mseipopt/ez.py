@@ -53,11 +53,10 @@ class Problem(bare_np.Problem):
         g = np.empty(self.m)
         obj_val = np.empty(())
         if copy:
-            x = np.broadcast_to(x, (self.n,))
             x = np.array(x, np.double, copy=True, order='C')
         
         status = super().solve(x, g, obj_val, mult_g, mult_x_L, mult_x_U)
-        info = dict(g=g, obj_val=obj_val, mult_g=mult_g, 
+        info = dict(g=g, obj_val=obj_val, mult_g=mult_g,
                     mult_x_L=mult_x_L, mult_x_U=mult_x_U, status=status)
         return x, info
 

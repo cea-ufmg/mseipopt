@@ -152,7 +152,7 @@ def wrap_f(f, handler=default_handler):
             x_array = as_array(x, (n,))
             obj_value_array = as_array(obj_value, ())
             return f(x_array, new_x, obj_value_array)
-        except Exception as e:
+        except BaseException as e:
             if callable(handler):
                 handler(e)
             return 0
@@ -162,12 +162,12 @@ def wrap_f(f, handler=default_handler):
 def wrap_grad_f(grad_f, handler=default_handler):
     @functools.wraps(grad_f)
     @bare.Eval_Grad_F_CB
-    def wrapper(n, x, new_x, grad_value, user_data):
+    def wrapper(n, x, new_x, grad_ptr, user_data):
         try:
             x_array = as_array(x, (n,))
-            grad_f_array = as_array(grad_value, (n,))
+            grad_f_array = as_array(grad_ptr, (n,))
             return grad_f(x_array, new_x, grad_f_array)
-        except Exception as e:
+        except BaseException as e:
             if callable(handler):
                 handler(e)
             return 0        
@@ -177,12 +177,12 @@ def wrap_grad_f(grad_f, handler=default_handler):
 def wrap_g(g, handler=default_handler):
     @functools.wraps(g)
     @bare.Eval_G_CB
-    def wrapper(n, x, new_x, m, g, user_data):
+    def wrapper(n, x, new_x, m, g_ptr, user_data):
         try:
             x_array = as_array(x, (n,))
-            g_array = as_array(grad_value, (m,))
+            g_array = as_array(g_ptr, (m,))
             return g(x_array, new_x, g_array)
-        except Exception as e:
+        except BaseException as e:
             if callable(handler):
                 handler(e)
             return 0
@@ -199,7 +199,7 @@ def wrap_jac_g(jac_g, handler=default_handler):
             j_array = as_array(jCol, (nele_jac,)) if jCol else None
             values_array = as_array(values, (nele_jac,)) if values else None
             return jac_g(x_array, new_x, i_array, j_array, values_array)
-        except Exception as e:
+        except BaseException as e:
             if callable(handler):
                 handler(e)
             return 0
@@ -219,7 +219,7 @@ def wrap_h(h, handler=default_handler):
             values_array = as_array(values, (nele_hess,)) if values else None
             return h(x_array, new_x, obj_factor, mult_array, new_mult,
                      i_array, j_array, values_array)
-        except Exception as e:
+        except BaseException as e:
             if callable(handler):
                 handler(e)
             return 0
@@ -234,7 +234,7 @@ def wrap_intermediate_cb(cb, handler=default_handler):
         try:
             return cb(alg_mod, iter_count, obj_value, inf_pr, inf_du, mu, 
                       d_norm, regularization_size, alpha_du, alpha_pr,ls_trials)
-        except Exception as e:
+        except BaseException as e:
             if callable(handler):
                 handler(e)
             return 0
