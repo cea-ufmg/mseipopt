@@ -21,8 +21,8 @@ class Problem(bare_np.Problem):
         f_cb = f_callback(f)
         grad_cb = grad_callback(grad)
         g_cb = g_callback(g)
-        jac_cb = jac_callback(jac)
-        hess_cb = hess_callback(hess)
+        jac_cb = jac_callback(jac, self)
+        hess_cb = hess_callback(hess, self)
         
         handler = self._callback_exception_handler
         super().__init__(x_bounds, g_bounds, nele_jac, nele_hess, 0,
@@ -90,7 +90,7 @@ def g_callback(g):
     return wrapper
 
 
-def jac_callback(jac):
+def jac_callback(jac, problem):
     jac_ind, jac_val = jac
     def wrapper(x, new_x, iRow, jCol, values):
         # Fill out Jacobian values
@@ -109,12 +109,15 @@ def jac_callback(jac):
         i, j = jac_ind() if callable(jac_ind) else jac_ind
         iRow[...] = i
         jCol[...] = j
+        # Check indices for overflow, can lead to segfault
+        assert np.all(iRow < problem.m), "row index overflow"
+        assert np.all(jCol < problem.n), "column index overflow"
         return 1
     
     return wrapper
 
 
-def hess_callback(hess):
+def hess_callback(hess, problem):
     if hess is None:
         return
     
@@ -125,7 +128,7 @@ def hess_callback(hess):
             if values.size == 0:
                 return 1
             if accepts_output(hess_val):
-                hess_val(x, out=values)
+                hess_val(x, obj_factor, mult, out=values)
             else:
                 values[...] = hess_val(x, obj_factor, mult)
             return 1
@@ -136,6 +139,9 @@ def hess_callback(hess):
         i, j = hess_ind() if callable(hess_ind) else hess_ind
         iRow[...] = i
         jCol[...] = j
+        # Check indices for overflow, can lead to segfault
+        assert np.all(iRow < problem.n), "row index overflow"
+        assert np.all(jCol < problem.n), "column index overflow"
         return 1
     
     return wrapper
