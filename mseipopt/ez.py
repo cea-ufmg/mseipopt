@@ -152,6 +152,6 @@ def accepts_output(f):
     if list(params).index('out') == 0:
         return False
     
-    kinds = inspect.Parameters
+    kinds = inspect.Parameter
     return out.kind == kinds.POSITIONAL_OR_KEYWORD or kinds.KEYWORD_ONLY
             
