@@ -1,7 +1,3 @@
-import ctypes
-import imp
-from ctypes import c_double, pointer, POINTER
-
 import numpy as np
 
 from mseipopt import bare, bare_np
