@@ -100,13 +100,13 @@ class Problem:
         if not bare.OpenIpoptOutputFile(self._problem, file_name, print_level):
             raise RuntimeError("error opening output file")
     
-    def set_problem_scaling(self, obj_scaling, x_scaling, g_scaling):
+    def set_scaling(self, obj_scaling, x_scaling, g_scaling):
         x_scaling = np.require(x_scaling, np.double, 'A')
         g_scaling = np.require(g_scaling, np.double, 'A')
         
         if x_scaling.shape != (self.n,):
             raise ValueError('invalid shape for the x scaling')
-        if g_scaling.shape == (self.m,):
+        if g_scaling.shape != (self.m,):
             raise ValueError('invalid shape for the g scaling')
         
         obj_s = float(obj_scaling)
@@ -114,7 +114,8 @@ class Problem:
         g_s = data_ptr(g_scaling)
         if not bare.SetIpoptProblemScaling(self._problem, obj_s, x_s, g_s):
             raise RuntimeError("error setting problem scaling")
-
+        self.add_str_option('nlp_scaling_method', 'user-scaling')
+    
     def set_intermediate_callback(self, cb):
         intermediate_cb = wrap_intermediate_cb(cb)
         if not bare.SetIntermediateCallback(self._problem, intermediate_cb):
