@@ -22,7 +22,7 @@ Topic :: Software Development"""
 
 setuptools.setup(
     name="mseipopt",
-    version="0.1.dev1",
+    version="0.1.dev2",
     author="Dimas Abreu Archanjo Dutra",
     author_email="dimasad@ufmg.br",
     description="The most simple ever python IPOPT interface.",

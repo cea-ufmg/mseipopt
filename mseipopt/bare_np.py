@@ -74,7 +74,7 @@ class Problem:
         
         # Set options
         if h is None:
-            self.str_option( 'hessian_approximation', 'limited-memory')
+            self.add_str_option('hessian_approximation', 'limited-memory')
     
     def free(self):
         if not self._problem:
